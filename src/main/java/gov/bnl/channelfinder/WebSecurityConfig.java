@@ -1,5 +1,6 @@
 package gov.bnl.channelfinder;
 
+import java.util.Collection;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,8 +14,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.ldap.DefaultSpringSecurityContextSource;
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import gov.bnl.channelfinder.CustomLdapUserDetails;
+import org.springframework.security.ldap.userdetails.LdapUserDetailsMapper;
+import org.springframework.security.ldap.userdetails.UserDetailsContextMapper;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.ldap.core.DirContextOperations;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
+import org.springframework.security.core.GrantedAuthority;
 
 @Configuration
+@EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
@@ -38,14 +48,19 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     boolean ldap_enabled;
     @Value("${ldap.urls:ldaps://localhost:389/}")
     String ldap_url;
-    @Value("${ldap.base.dn}")
-    String ldap_base_dn;
     @Value("${ldap.user.dn.pattern}")
     String ldap_user_dn_pattern;
+    @Value("${ldap.user.search.base}")
+    String ldap_user_search_base;
     @Value("${ldap.groups.search.base}")
     String ldap_groups_search_base;
     @Value("${ldap.groups.search.pattern}")
     String ldap_groups_search_pattern;
+    @Value("${ldap.bind.user.dn}")
+    String ldap_bind_user_dn;
+    @Value("${ldap.bind.user.pass}")
+    String ldap_bind_user_pass;
+    
 
     /**
      * Embedded LDAP configuration properties
@@ -80,19 +95,43 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         if (ldap_enabled) {
             DefaultSpringSecurityContextSource contextSource = new DefaultSpringSecurityContextSource(ldap_url);
-            contextSource.afterPropertiesSet();
+            contextSource.setUserDn(ldap_bind_user_dn);
+            contextSource.setPassword(ldap_bind_user_pass);
 
+            contextSource.afterPropertiesSet();
+//
             DefaultLdapAuthoritiesPopulator myAuthPopulator = new DefaultLdapAuthoritiesPopulator(contextSource, ldap_groups_search_base);
             myAuthPopulator.setGroupSearchFilter(ldap_groups_search_pattern);
             myAuthPopulator.setSearchSubtree(true);
             myAuthPopulator.setIgnorePartialResultException(true);
 
             auth.ldapAuthentication()
-                .userDnPatterns(ldap_user_dn_pattern)
-                .ldapAuthoritiesPopulator(myAuthPopulator)
-                .contextSource(contextSource);
+            .userDetailsContextMapper(userDetailsContextMapper())
+            .userSearchFilter(ldap_user_dn_pattern)
+            .userSearchBase(ldap_user_search_base)
+            .ldapAuthoritiesPopulator(myAuthPopulator)
+            .contextSource(contextSource);
+////            
+//            auth
+//            .ldapAuthentication()
+//            .userSearchFilter(ldap_user_dn_pattern)
+//            .userSearchBase(ldap_user_search_base)
+//            .groupSearchBase(ldap_groups_search_base)
+//            .groupSearchFilter(ldap_groups_search_pattern)
+//            .contextSource()
+//                .url(ldap_url)
+//                .port(636)
+//                .managerDn(ldap_bind_user_dn)
+//                .managerPassword(ldap_bind_user_pass)
+//        ;
+            
+            //ActiveDirectoryLdapAuthenticationProvider adLdapAuthenticationProvider = new ActiveDirectoryLdapAuthenticationProvider(domain_url,ldap_url,"DC=anl,DC=gov");
+            //adLdapAuthenticationProvider.setConvertSubErrorCodesToExceptions(true);
+            //adLdapAuthenticationProvider.setUseAuthenticationRequestCredentials(true);
+//            auth.authenticationProvider(activeDirectoryLdapAuthenticationProvider()).eraseCredentials(true);
+//            auth.authenticationProvider(myAuthP);
         }
-
+    
         if (embedded_ldap_enabled) {
             DefaultSpringSecurityContextSource contextSource = new DefaultSpringSecurityContextSource(embedded_ldap_url);
             contextSource.afterPropertiesSet();
@@ -123,4 +162,27 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 
+//    @Bean
+//    public AuthenticationManager authenticationManager() {
+//        return new ProviderManager(Arrays.asList(activeDirectoryLdapAuthenticationProvider()));
+//    }
+//    
+//    @Bean
+//    public AuthenticationProvider activeDirectoryLdapAuthenticationProvider() {
+//        ActiveDirectoryLdapAuthenticationProvider provider = new ActiveDirectoryLdapAuthenticationProvider(domain_url,ldap_url);
+//        provider.setConvertSubErrorCodesToExceptions(true);
+//        provider.setUseAuthenticationRequestCredentials(true);
+//        provider.setSearchFilter("(sAMAccountName={0})");
+//        return provider;
+//    }
+    @Bean
+    public UserDetailsContextMapper userDetailsContextMapper() {
+        return new LdapUserDetailsMapper() {
+            @Override
+            public UserDetails mapUserFromContext(DirContextOperations ctx, String username, Collection<? extends GrantedAuthority> authorities) {
+                UserDetails details = super.mapUserFromContext(ctx, username, authorities);
+                return new CustomLdapUserDetails((LdapUserDetails) details);
+            }
+        };
+    }
 }

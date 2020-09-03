@@ -15,6 +15,8 @@ es_port=9200
 ###
 # The mapping definition for the Indexes associated with the channelfinder v4
 
+# To delete all data and Indexes.
+# curl -XDELETE localhost:9200/*
 
 #Create the Index
 curl -H 'Content-Type: application/json' -XPUT http://${es_host}:${es_port}/cf_tags -d'
@@ -90,5 +92,11 @@ curl -H 'Content-Type: application/json' -XPUT http://${es_host}:${es_port}/chan
       }
     }
   }
+  },
+"settings": {
+  "index": {
+    "max_result_window": 10000
   }
+}
 }'
+#Default max_result_window is 10000

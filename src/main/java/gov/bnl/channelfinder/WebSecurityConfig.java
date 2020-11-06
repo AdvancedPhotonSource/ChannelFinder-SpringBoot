@@ -99,7 +99,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
             contextSource.setPassword(ldap_bind_user_pass);
 
             contextSource.afterPropertiesSet();
-//
+
             DefaultLdapAuthoritiesPopulator myAuthPopulator = new DefaultLdapAuthoritiesPopulator(contextSource, ldap_groups_search_base);
             myAuthPopulator.setGroupSearchFilter(ldap_groups_search_pattern);
             myAuthPopulator.setSearchSubtree(true);

@@ -317,7 +317,7 @@ public class PropertyManager {
                     throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                             "User does not have the proper authorization to perform an operation on this property: " + existingProperty.get(), null);
                 } 
-                chans = existingProperty.get().getChannels();
+               // chans = existingProperty.get().getChannels();
             } 
 
             // update property
@@ -330,46 +330,26 @@ public class PropertyManager {
                 XmlChannel myChan = null;
                 boolean existProp;
                 boolean channelMatch;
-                for(XmlChannel existingChan: chans) {
-                    // First update the channels that have this property and are in property's payload 
-                    channelMatch = false;
-                    for(XmlChannel chan: property.getChannels()) {
-                        if(chan.getName().equals(existingChan.getName())) {
-                            // If this channel already exists and is in proptery's payload
-                            channelMatch = true;
-                            myChan = existingChan;
-                            for(XmlProperty prop: myChan.getProperties()) {
-                                if(prop.getName().equals(propertyName)) {
-                                    p = prop;
-                                    p.setValue(chan.getProperties().get(0).getValue());
-                                    myChan.addProperty(p);
-                                }
-                            }
-                            chanList.add(myChan);
-                        }
-                    }
-                    if(!channelMatch) {
-                        // If the channel exists with this property but is not in property's payload 
-                        chanList.add(existingChan);
-                    }
-                }
-                    
                 for(XmlChannel chan: property.getChannels()) {
-                    // Add this property to channels that does not already have this property
                     Optional<XmlChannel> existingChannel = channelRepository.findById(chan.getName());
                     if(existingChannel.isPresent()) {
                         myChan = existingChannel.get();
                         existProp = false;
                         for(XmlProperty prop: myChan.getProperties()) {
                             if(prop.getName().equals(propertyName)) {
+                                // Add this property to channel that already has this property
                                 existProp = true;
+                                p = prop;
+                                p.setValue(chan.getProperties().get(0).getValue());
+                                myChan.addProperty(p);
                             }
                         }
                         if(!existProp) {
+                            // Add this property to channel that does not have this property
                             p = new XmlProperty(property.getName(),property.getOwner(),chan.getProperties().get(0).getValue());
                             myChan.setProperties(Arrays.asList(p));
-                            chanList.add(myChan);
                         }
+                        chanList.add(myChan);
                     }
                 }
                 

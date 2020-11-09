@@ -6,7 +6,7 @@
 
 	<artifactId>ChannelFinder</artifactId>
 	<groupId>org.epics</groupId>
-	<version>4.1.1</version>
+	<version>4.1.2</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -115,4 +115,15 @@ public class AuthorizationService {
             return true;
         return false;
     }
+
+    public boolean isAuthorizedAdminRole(Authentication authentication) {
+        ArrayList<String> auth = new ArrayList<String>();
+        Collection<? extends GrantedAuthority> auths = authentication.getAuthorities();
+        for(GrantedAuthority a: auths)
+            auth.add(a.getAuthority());
+
+        if(!Collections.disjoint(auth,ROLES.CF_ADMIN.groups))
+            return true;
+        return false;
+    }
 }

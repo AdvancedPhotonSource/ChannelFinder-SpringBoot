@@ -114,6 +114,9 @@ public class ChannelManager {
                     throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                             "User does not have the proper authorization to perform an operation on this channel: " + existingChannel.get(), null);
                 } 
+                //Keep the old owner name if the user does not belong to admin group.
+		if (!authorizationService.isAuthorizedAdminRole(SecurityContextHolder.getContext().getAuthentication()))
+		    channel.setOwner(existingChannel.get().getOwner());
                 // delete existing channel
                 channelRepository.deleteById(channelName);
             } 
@@ -152,7 +155,9 @@ public class ChannelManager {
                         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                                 "User does not have the proper authorization to perform an operation on this channel: " + existingChannel.get(), null);
                     } 
-                    channel.setOwner(existingChannel.get().getOwner());
+                    //Keep the old owner name if the user does not belong to admin group.
+                    if (!authorizationService.isAuthorizedAdminRole(SecurityContextHolder.getContext().getAuthentication()))
+			channel.setOwner(existingChannel.get().getOwner());
                 } else {
                     if(!authorizationService.isAuthorizedOwner(SecurityContextHolder.getContext().getAuthentication(), channel)) {
                         log.log(Level.SEVERE, "User does not have the proper authorization to perform an operation on this channel: " + channel.toLog(), new ResponseStatusException(HttpStatus.UNAUTHORIZED));
